@@ -1,6 +1,9 @@
 import cv2, time
+from datetime import datetime
 
 firstFrame = None
+statusList = [None, None]
+times = []
 count = 0
 video = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -17,7 +20,6 @@ while True:
             continue
 
         deltaFrame = cv2.absdiff(firstFrame, gray)              #absolute difference between first frame and blurry grayscale frame to detect difference in the frame
-
         threshFrame = cv2.threshold(deltaFrame, 40, 255, cv2.THRESH_BINARY)[1]
         threshFrame = cv2.dilate(threshFrame, None, iterations = 4)
 
@@ -26,11 +28,17 @@ while True:
         for contour in cnts:
             if cv2.contourArea(contour) < 5000:
                 continue
-            status = 1
+            status = 1                                       #status 1 when moving object enters frame
 
             (x, y, w, h) = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
-                
+
+        statusList.append(status) 
+
+        if statusList[-1] == 1 and statusList[-2] == 0:
+            times.append(datetime.now())                     #save times when an object is moving
+        if statusList[-1] == 0 and statusList[-2] == 1:
+            times.append(datetime.now())
 
         cv2.imshow("Gray Frame", gray)
         cv2.imshow("Delta Frame", deltaFrame)
@@ -40,9 +48,11 @@ while True:
     keyPress = cv2.waitKey(1)
     count = count + 1
     if keyPress == ord('q'):
+        if status == 1:
+            times.append(datetime.now())
         break
 
-    print(status)
-
+print(statusList)
+print(times)
 video.release()
 cv2.destroyAllWindows()
